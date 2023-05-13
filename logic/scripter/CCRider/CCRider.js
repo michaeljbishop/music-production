@@ -197,7 +197,6 @@ var MBLogic = function() {
     // read/write.
     //
     set parameters(params) {
-      //       MBLogic.trace("set parameters - BEGIN" + params.map(p => p.name));
       PluginParameters = params;
       globalThis.UpdatePluginParameters();
     },
