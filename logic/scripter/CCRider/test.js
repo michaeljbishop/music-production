@@ -31,51 +31,17 @@ const points = [
   0.3,
   0.60,
 ];
-// const points = [
-// 0.0,
-// 1.0,
-// 0.0,
-// 1.0,
-// 0.0,
-// 1.0,
-// 0.0,
-// 1.0,
-// 0.0,
-// 1.0,
-// 0.0,
-// 1.0,
-// ];
 
 console.log("TEST")
 
-var bezier = Bezier(points, 128);
-//   var point = bezier(0.99);
-//   drawPoint(...scaled(point, 0.99), 1);
+var bezier = bezierCurve(points, 128);
 
-// for (var i = 0.0; i <= 1.0; i += (1 / (points.length))) {
-// for (var i = 0.0; i <= 1.0; i += 0.99) {
-const drawDetail =
-true;
-// false;
-if (drawDetail) {
-for (var i = 0.0; i <= 1.0; i += 0.001) {
+for (var i = 0.0; i <= 1.0; i += 0.0025) {
   var point = bezier(i);
   drawPoint(...scaled(point, i), 1);
 }
-}
-// drawPoint(...scaled(bezier(1.0), 1), 1);
 
 // Draw points at curve connections
 points.forEach((point, index) => {
   drawPoint(...scaled(point, index / (points.length - 1)), 4);
 });
-// 
-// console.log("---TEST---")
-// riders.forEach(rider => {
-//   rider.controlPointCount = 2;
-//   rider.value = 64;
-// });
-// 
-// const rider = riders[0];
-// rider.controlPointCount = 5;
-// rider.controlPointCount = 4;
