@@ -101,6 +101,7 @@ function main() {
 
     var inputValue;
     const inputType = inputParameter.value;
+    var passThrough = false;
 
     // These are ordered by how likely they are to be used
     if (inputType == (kMidiInputTypes.CC + event.number) && event instanceof ControlChange) {
@@ -113,15 +114,21 @@ function main() {
       inputValue = (event.value - kPitchBendMin) / (kPitchBendMax - kPitchBendMin);
     } else if (inputType == kMidiInputTypes.velocity && event instanceof NoteOn) {
       inputValue = event.velocity / 127;
+      passThrough = true;
     } else if (inputType == kMidiInputTypes.note && event instanceof NoteOn) {
       inputValue = event.pitch / 127;
+      passThrough = true;
+    } else {
+      passThrough = true;
     }
 
     if (inputValue != undefined) {
       riders.forEach(rider => {
         rider.value = inputValue;
       });
-    } else {
+    }
+
+    if (passThrough) {
       event.send();
     }
   }
