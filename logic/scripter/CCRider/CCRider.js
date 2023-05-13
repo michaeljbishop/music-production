@@ -143,7 +143,7 @@ var MBMath = {
 // Utility code to make dealing with Logic's API a little easier
 
 var MBLogic = function() {
-  const kMaxTraceQueueLength = 100;
+  const kMaxTraceQueueLength = 50;
   var _eventQueue = [];
   var _traceQueue = [];
 
