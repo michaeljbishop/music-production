@@ -1,5 +1,16 @@
 "use strict";
 
+const outputs = [{
+    key: "e", // Expression
+    defaultCCNumber: 11
+  },
+  {
+    key: "d", // Dynamics
+    defaultCCNumber: 1
+  }
+];
+
+// DESCRIPTION:
 // Script for using a single input to generate multiple outputs, scaled along a
 // custom-defined curve.
 //
@@ -9,18 +20,32 @@
 // are controlled together with two fingers on sliders but this script allows
 // you to configure how you want them to move, given a single CC input value.
 //
-// To add outputs, add items to the "key" variable below. Each key is used to give a
-// unique name to every parameter. They can be full words or letters, but they
-// must be unique.
+// To add outputs, add items to the "outputs" variable at the top of the
+// script.
+//
+// Output Properties
+// key <string>:
+//      Each key is used to give a unique name to every output. They
+//      can be full words or letters, but they must be unique.
+// defaultCCNumber <integer, optional>:
+//      The default CC number when this output is initialized
+//      Has no effect when kUseTargetPararmeters = true
 //
 // INSTRUCTIONS: https://github.com/michaeljbishop/music-production/logic/scripter/CCRider/README.md
 // LICENSE: https://github.com/michaeljbishop/music-production/README.md
 
-const keys = ["e", "d"]; // e -> expression, d -> dynamics
-
 const kSliderResolution = 128 // How many notches in each slider. 128 is good.
 const kMaxControlParameterCount = 9; // The maximum number of sliders per group
 const kDefaultControlParameterCount = 3; // The default number of sliders per group
+
+// Turn Target Parameters on if you want to be able to choose a specific parameter of a
+// plugin, not just CC values.
+//
+// WARNING: Logic may unset your target parameters when the audio resets. which is
+// why this is off by default. As a workaround, you can choose an unused CC output, then
+// send it to a downstream "Modifier" MIDI insert, which can turn it that CC value
+// into a plugin-parameter. Same result, just more setup.
+const kUseTargetPararmeters = false;
 
 function main() {
 
@@ -44,7 +69,7 @@ function main() {
     ...(MBLogic.ccNames.map((name, index) => `${index} - ${name}`))
   ];
 
-  const riders = keys.map((key) => new CCRider(key, kDefaultControlParameterCount));
+  const riders = outputs.map((output) => new CCRider(output.key, kDefaultControlParameterCount, output.defaultCCNumber));
 
   const inputParameter = new MBLogic.Parameter({
     name: "Input",
@@ -153,8 +178,13 @@ var MBLogic = function() {
   const kMaxTraceQueueLength = 50;
   var _eventQueue = [];
   var _traceQueue = [];
+  var _initialized = false;
+  var _initializationCallbacks = [];
 
   var API = {
+    addInitializationCallback: function(callback) {
+      _initializationCallbacks.push(callback);
+    },
 
     onNextLoop: function(func) {
       _eventQueue.push(func);
@@ -172,6 +202,14 @@ var MBLogic = function() {
       var event = new TargetEvent();
       event.target = parameterName;
       event.value = value;
+      event.send();
+    },
+
+    // Utility to send a CC Event with a value
+    sendCCEvent: function(number, value) {
+      var event = new ControlChange();
+      event.number = number;
+      event.value = MIDI.normalizeData(value * 127);
       event.send();
     },
 
@@ -229,6 +267,7 @@ var MBLogic = function() {
 
   API.Parameter.prototype._valueChanged = function(value) {
     this._lastValue = value;
+    this._initialized = true;
 
     if (this.valueChanged)
       this.valueChanged(value)
@@ -269,8 +308,14 @@ var MBLogic = function() {
   // we call the parameter's valueChanged() method
   globalThis.ParameterChanged = function(index, value) {
     const param = PluginParameters[index];
+    var initialized = true;
     if (param && param._valueChanged) {
       param._valueChanged(value);
+      initialized = initialized || param._initialized
+    }
+    if (!_initialized && initialized) {
+      _initialized = true;
+      _initializationCallbacks.forEach(c => c())
     }
   }
 
@@ -280,7 +325,7 @@ var MBLogic = function() {
 
 // =================== CCRider ===================
 
-function CCRider(key, defaultParameterCount) {
+function CCRider(key, defaultParameterCount, defaultCCOutput) {
   defaultParameterCount = defaultParameterCount || 3;
 
   const kSliderMax = 100
@@ -292,11 +337,24 @@ function CCRider(key, defaultParameterCount) {
   var _controlParameters = [];
   var _value; // The most recent value we were set to
 
-  var _outputParameter = new MBLogic.Parameter({
-    name: "Output " + key,
-    type: "target",
-    valueChanged: flush.bind(rider)
-  });
+  var _outputParameter = function() {
+    if (kUseTargetPararmeters) {
+      return new MBLogic.Parameter({
+        name: "Output " + key,
+        type: "target",
+        valueChanged: flush.bind(rider)
+      });
+    }
+    return new MBLogic.Parameter({
+      name: "Output CC " + key,
+      type: "lin",
+      minValue: 0,
+      maxValue: 127,
+      numberOfSteps: 127,
+      defaultValue: defaultCCOutput || 0,
+      valueChanged: flush.bind(rider)
+    });
+  }()
 
   for (var i = 0; i < kMaxControlParameterCount; i++) {
     const index = i;
@@ -311,7 +369,7 @@ function CCRider(key, defaultParameterCount) {
       numberOfSteps: kSliderResolution,
       type: "lin",
       unit: "%",
-      hidden: i >= defaultParameterCount,
+      hidden: true,
       valueChanged: function(value) {
         const lastValue = MBLogic.step(_points[index] * kSliderMax, 0, kSliderMax, kSliderResolution);
 
@@ -333,6 +391,20 @@ function CCRider(key, defaultParameterCount) {
       }
     }));
   };
+
+  function updateControlParameterAttributes() {
+    // - Hide the unused controls
+    _controlParameters.forEach((p, index) => {
+      p.hidden = index >= _curveResolution;
+    });
+    // - Set the default values based on resolution
+    for (var i = 0; i < _curveResolution; i++) {
+      const defaultValue = Math.min((i / (_curveResolution - 1) * kSliderMax), kSliderMax)
+      _controlParameters[i].defaultValue = MBMath.clamp(defaultValue, 0, kSliderMax);
+    }
+  };
+
+  MBLogic.addInitializationCallback(updateControlParameterAttributes);
 
   Object.defineProperty(this, "parameters", {
     get() {
@@ -374,11 +446,6 @@ function CCRider(key, defaultParameterCount) {
 
       _curveResolution = value;
 
-      // - Hide the unused controls
-      _controlParameters.forEach((p, index) => {
-        p.hidden = index >= _curveResolution;
-      });
-
       // Update the points based on the saved curve
       if (_savedCurve && _points.length > 1) {
         for (var i = 0; i < _curveResolution; i++) {
@@ -387,6 +454,8 @@ function CCRider(key, defaultParameterCount) {
           _controlParameters[i].value = (newPoint * kSliderMax);
         }
       }
+
+      updateControlParameterAttributes();
 
       // - Update the UI to reflect the new points
       MBLogic.updatePluginParameters()
@@ -427,7 +496,12 @@ function CCRider(key, defaultParameterCount) {
     if (value == undefined) {
       return;
     }
-    MBLogic.sendTargetEvent(_outputParameter.name, c(value));
+
+    if (kUseTargetPararmeters) {
+      MBLogic.sendTargetEvent(_outputParameter.name, c(value));
+    } else {
+      MBLogic.sendCCEvent(_outputParameter.value, c(value));
+    }
   }
 }
 
