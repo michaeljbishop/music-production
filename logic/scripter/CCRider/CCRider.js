@@ -328,6 +328,16 @@ var MBLogic = function() {
 function CCRider(key, defaultParameterCount, defaultCCOutput) {
   defaultParameterCount = defaultParameterCount || 3;
 
+  const kOutputCCMenuItems = [
+    "(Off)",
+    ...(MBLogic.ccNames.map((name, index) => `${index} - ${name}`))
+  ];
+  
+  const kMidiOutputTypes = {
+    off: 0,
+    CC: 1,
+  };
+
   const kSliderMax = 100
   const rider = this;
   var _curveResolution = 0; // The number of control points that are visible.
@@ -347,11 +357,9 @@ function CCRider(key, defaultParameterCount, defaultCCOutput) {
     }
     return new MBLogic.Parameter({
       name: "Output CC " + key,
-      type: "lin",
-      minValue: 0,
-      maxValue: 127,
-      numberOfSteps: 127,
-      defaultValue: defaultCCOutput || 0,
+      type: "menu",
+      valueStrings: kOutputCCMenuItems,
+      defaultValue: (defaultCCOutput == undefined) ? kMidiOutputTypes.off : defaultCCOutput + kMidiOutputTypes.CC,
       valueChanged: flush.bind(rider)
     });
   }()
@@ -500,7 +508,9 @@ function CCRider(key, defaultParameterCount, defaultCCOutput) {
     if (kUseTargetPararmeters) {
       MBLogic.sendTargetEvent(_outputParameter.name, c(value));
     } else {
-      MBLogic.sendCCEvent(_outputParameter.value, c(value));
+      if (_outputParameter.value > kMidiOutputTypes.off) {
+        MBLogic.sendCCEvent(_outputParameter.value - kMidiOutputTypes.CC, c(value));
+      }
     }
   }
 }
