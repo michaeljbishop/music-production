@@ -158,12 +158,11 @@ function main() {
   }
 
   const VERSION = "1.0";
-
-  MBLogic.trace(`---\nCCRider ${VERSION} (@2023 Michael Bishop)\nINSTRUCTIONS: https://github.com/michaeljbishop/music-production/logic/scripter/CCRider/README.md\nLICENSE: https://github.com/michaeljbishop/music-production/README.md`)
+  var startupMessage = `---\nCCRider ${VERSION} (@2023 Michael Bishop)\n\nInstructions: https://github.com/michaeljbishop/music-production/logic/scripter/CCRider/README.md\n     License: https://github.com/michaeljbishop/music-production/README.md\n---`;
   if (kUseTargetPararmeters) {
-    MBLogic.trace(`---\nWARNING: kUseTargetPararmeters = ${kUseTargetPararmeters}. Direct plugin parameters on VST Instruments may be reset when Core Audio is reset.`)
+    startupMessage += (`\nWARNING: kUseTargetPararmeters = ${kUseTargetPararmeters}. Direct plugin parameters on VST Instruments may be reset when Core Audio is reset.\n---`);
   }
-  MBLogic.trace("---")
+  Trace(startupMessage)
 }
 
 // =================== MBMath ===================
