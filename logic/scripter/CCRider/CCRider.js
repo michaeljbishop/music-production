@@ -11,6 +11,7 @@ const outputs = [{
 ];
 
 // DESCRIPTION:
+//
 // Script for using a single input to generate multiple outputs, scaled along a
 // custom-defined curve.
 //
@@ -31,8 +32,6 @@ const outputs = [{
 //      The default CC number when this output is initialized
 //      Has no effect when kUseTargetPararmeters = true
 //
-// INSTRUCTIONS: https://github.com/michaeljbishop/music-production/logic/scripter/CCRider/README.md
-// LICENSE: https://github.com/michaeljbishop/music-production/README.md
 
 const kSliderResolution = 128 // How many notches in each slider. 128 is good.
 const kMaxControlParameterCount = 9; // The maximum number of sliders per group
@@ -157,6 +156,14 @@ function main() {
       event.send();
     }
   }
+
+  const VERSION = "1.0";
+
+  MBLogic.trace(`---\nCCRider ${VERSION} (@2023 Michael Bishop)\nINSTRUCTIONS: https://github.com/michaeljbishop/music-production/logic/scripter/CCRider/README.md\nLICENSE: https://github.com/michaeljbishop/music-production/README.md`)
+  if (kUseTargetPararmeters) {
+    MBLogic.trace(`---\nWARNING: kUseTargetPararmeters = ${kUseTargetPararmeters}. Direct plugin parameters on VST Instruments may be reset when Core Audio is reset.`)
+  }
+  MBLogic.trace("---")
 }
 
 // =================== MBMath ===================
@@ -332,7 +339,7 @@ function CCRider(key, defaultParameterCount, defaultCCOutput) {
     "(Off)",
     ...(MBLogic.ccNames.map((name, index) => `${index} - ${name}`))
   ];
-  
+
   const kMidiOutputTypes = {
     off: 0,
     CC: 1,
