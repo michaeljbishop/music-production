@@ -609,10 +609,6 @@ var bezierCurve = function(points, resolution) {
   }
 
   function generateCurves(curvePoints) {
-    function xor(a, b) {
-      return (a && b) || !(a || b)
-    }
-
     var curves = [];
 
     curvePoints.forEach((point, index) => {
@@ -622,29 +618,40 @@ var bezierCurve = function(points, resolution) {
       // start point
       if (index == 0) {
         const offset = point + (curvePoints[1] - point) / 3;
-        curves[0] = [point, offset];
+        curves[0] = [point];
+        curves[0].push(offset);
         return;
       }
 
       // last point. Append the point to the last curve
       if (index == curvePoints.length - 1) {
-        const offset = curvePoints[index - 1] + (point - curvePoints[index - 1]) / 3;
+        const previousPoint = curvePoints[index - 1];
+        const offset = previousPoint + (point - previousPoint) / 3;
         curves[index - 1].push(offset);
         curves[index - 1].push(point);
         return;
       }
-      // what is the slope of the previous line:
-      const prevslope = point - curvePoints[index - 1];
-      const nextSlope = curvePoints[index + 1] - point;
-      const averageSlope = (prevslope + nextSlope) / 2;
-      const isLocalMaxMin = !xor(prevslope > 0, nextSlope > 0)
-      var offset = Math.min(Math.abs(prevslope), Math.abs(nextSlope), Math.abs(averageSlope / offsetConst)) * Math.sign(averageSlope)
 
-      curves[index - 1].push(point - (isLocalMaxMin ? 0 : offset));
+      const a = point - curvePoints[index - 1];
+      const signA = Math.sign(a);
+      const b = curvePoints[index + 1] - point;
+      const offset = function() {
+        if (Math.sign(b) != signA)
+          return 0;
+
+        const lengthA = Math.abs(a);
+        const lengthB = Math.abs(b);
+        const minLength = Math.min(lengthA, lengthB);
+
+//         return Math.min(Math.max(lengthA, lengthB) / 3, minLength) * signA;
+        return minLength / 3 * signA;
+      }();
+
+      curves[index - 1].push(point - offset);
       curves[index - 1].push(point);
 
       curve.push(point);
-      curve.push(point + (isLocalMaxMin ? 0 : offset));
+      curve.push(point + offset);
 
       curves.push(curve);
     });
