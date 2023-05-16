@@ -422,7 +422,9 @@ function CCRider(key, defaultParameterCount, defaultCCOutput) {
 
   Object.defineProperty(this, "parameters", {
     get() {
-      return [_outputParameter].concat(_controlParameters.toReversed());
+      var reversedControlParameters = _controlParameters.slice();
+      reversedControlParameters.reverse();
+      return [_outputParameter].concat(reversedControlParameters);
     }
   });
 
