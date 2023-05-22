@@ -1,3 +1,11 @@
+# Overview
+
+CCRider is a Logic script for using a single input to generate multiple outputs, scaled along a custom-defined curve.
+
+This can be useful in many virtual instruments in which CC 11 controls the "Expression", which is a simple volume control and CC 1 controls "Dynamics" which controls the timbre (brightness) of the instrument. Typically these are controlled together with two fingers on sliders but this script allows you to configure, per-instrument how you want each attribute to change, given a single CC input value.
+
+With this in place, there is a single fader to move and a single lane of CC data to edit.
+
 # How to install CCRider:
 
 1. Add a "Scripter" midi insert to your instrument. It should show you the control panel.
